@@ -107,7 +107,7 @@ Golang版本：1.16.7
 
 在课程网站的note中找到一个关于这一情行的说明：https://pdos.csail.mit.edu/6.824/notes/l-raft.txt
 
-![](F:\Git Demo\DistributedLab\screenshot\lab2AoldLeader.jpg)
+![](./screenshot/lab2AoldLeader.jpg)
 
 总体意思就是，由于网络分区等原因处于旧term的leader无法将他的日志复制给多数的follower，从而使他的日志无法提交，并不会影响新term的leader向follower提交日志
 
@@ -134,7 +134,7 @@ Golang版本：1.16.7
 
 ### 2C部分
 
-![lab2Ctest](F:\Git Demo\DistributedLab\screenshot\lab2Ctest.jpg)
+![lab2Ctest](./screenshot/lab2Ctest.jpg)
 
 这一部分主要是实现状态持久化，单论这一任务来说是非常简单的，只要把两个关于persist的函数实现了，然后在currentTerm，votedFor，logs发生改变时调用就行了。但是如果仅仅只是加上这一步可能仍然无法通过2C的所有测试case，即使你已经通过了2A 2B的全部case。2C当中的case相比2A和2B，特别是最后几个case，它模拟的网络中断、结点宕机等情况更为极端和严重，从而暴露出此前代码中存在的问题
 
