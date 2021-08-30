@@ -82,7 +82,7 @@ Golang版本：1.16.7
 
 例如：我最初对于选举部分的设计使用的是waitgroup，为其他每一个raft peer开一个协程向他们发送requestVote rpc，在得到这一raft peer的投票结果之后就调用waitgroup.done方法。而主协程则使用waitgroup.wait等待所有投票协程完成，再进一步检查选举是否成功或是否选举超时。使用这一模型编写的代码可以通过前两项测试，但第三项测试就挂了。经过查询输出的log得知候选人在拿到多数票后仍卡在选举协程等待所有投票协程完成，没有及时向其他raft peer发送心跳，从而导致其他raft peer超时又开始一轮新选举，造成选不出leader。在这一实验中提供给我们的rpc模拟了一种不可靠的网络环境，每次调用rpc可能会成功，也可能会失败，且在这之间也可能会存在延迟，因此选举过程中主协程不能等待所有子协程都退出，必须在票数达到半数后马上就开始leader的操作给peer发心跳。因此在这里选举主协程采用条件变量进行等待，在票数过半、超时、发现选举过期、被kill等事件发生时就会退出循环开始下一步处理不等子协程。
 
-另一方面是我最初向所有follower发送心跳的方法是为每一个follower开一个协程，这个协程里运行一个死循环，每次循环调用一次appendEntries rpc，然后sleep 50ms。这里存在的问题是这个不可靠的rpc并不是每回都会立即返回，也不是每回调用都会成功，因此可能会导致一次循环中的appendEntries rpc阻塞非常长的时间，经过我的测试阻塞久的时候会长达800 900乃至1000多毫秒，从而大大减少了心跳。我一直到最后做2C的时候卡在Figure8 （unreliable)这个case上就是由于这一点，最后改成每个50ms就开一个协程单独发送appendEntries rpc，这才得以通过这一case。
+另一方面是我最初向所有follower发送心跳的方法是为每一个follower开一个协程，这个协程里运行一个死循环，每次循环调用一次appendEntries rpc，然后sleep 50ms。这里存在的问题是这个不可靠的rpc并不是每回都会立即返回，也不是每回调用都会成功，因此可能会导致一次循环中的appendEntries rpc阻塞非常长的时间，经过我的测试阻塞久的时候会长达800 900乃至1000多毫秒，从而大大减少了心跳。我一直到最后做2C的时候卡在Figure8 （unreliable)这个case上就是由于这一点，最后改成每隔50ms就开一个协程单独发送appendEntries rpc，这才得以通过这一case。
 
 #### 一些点
 
@@ -151,6 +151,9 @@ MIT6.824课程官方网站 https://pdos.csail.mit.edu/6.824/
 
 raft paper中文翻译 https://github.com/maemual/raft-zh_cn
 
+raft动画演示http://thesecretlivesofdata.com/raft/
+
 MIT6.824 2020中文翻译录播课(非机翻) https://www.bilibili.com/video/BV1x7411M7Sf
 
 课程助教编写的关于raft实验的指引student-guide https://thesquareplanet.com/blog/students-guide-to-raft/
+
